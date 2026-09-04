@@ -14,7 +14,7 @@ import {
 interface CharacterEditModalProps {
   isOpen: boolean;
   onClose: () => void;
-  character: FantasyCharacter;
+  character: FantasyCharacter | null;
   onSave: (updated: FantasyCharacter) => void;
 }
 
@@ -24,12 +24,21 @@ export const CharacterEditModal: React.FC<CharacterEditModalProps> = ({
   character,
   onSave,
 }) => {
-  const [name, setName] = useState(character.name);
-  const [title, setTitle] = useState(character.title);
-  const [primaryWeapon, setPrimaryWeapon] = useState(character.primaryWeapon);
-  const [backstory, setBackstory] = useState(character.backstory || character.flavor);
+  const [name, setName] = useState(character?.name || '');
+  const [title, setTitle] = useState(character?.title || '');
+  const [primaryWeapon, setPrimaryWeapon] = useState(character?.primaryWeapon || '');
+  const [backstory, setBackstory] = useState(character?.backstory || character?.flavor || '');
 
-  if (!isOpen) return null;
+  React.useEffect(() => {
+    if (character) {
+      setName(character.name);
+      setTitle(character.title);
+      setPrimaryWeapon(character.primaryWeapon);
+      setBackstory(character.backstory || character.flavor || '');
+    }
+  }, [character, isOpen]);
+
+  if (!isOpen || !character) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

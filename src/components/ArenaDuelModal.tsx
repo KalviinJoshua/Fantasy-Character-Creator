@@ -19,8 +19,11 @@ import {
 interface ArenaDuelModalProps {
   isOpen: boolean;
   onClose: () => void;
-  playerCharacter: FantasyCharacter;
-  deck: FantasyCharacter[];
+  playerCharacter?: FantasyCharacter | null;
+  character?: FantasyCharacter | null;
+  deck?: FantasyCharacter[];
+  soundEnabled?: boolean;
+  onVictory?: (bossName: string) => void;
 }
 
 interface Combatant {
@@ -78,9 +81,13 @@ const DUNGEON_BOSSES: Combatant[] = [
 export const ArenaDuelModal: React.FC<ArenaDuelModalProps> = ({
   isOpen,
   onClose,
-  playerCharacter,
-  deck,
+  playerCharacter: propPlayerCharacter,
+  character,
+  deck = [],
+  soundEnabled = true,
+  onVictory,
 }) => {
+  const playerCharacter = character || propPlayerCharacter;
   const [player, setPlayer] = useState<Combatant | null>(null);
   const [enemy, setEnemy] = useState<Combatant | null>(null);
   const [battleLog, setBattleLog] = useState<Array<{ text: string; type: 'player' | 'enemy' | 'system' }>>([]);

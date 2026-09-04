@@ -44,22 +44,30 @@ const DEFAULT_GUILD_PROFILE: GuildProfile = {
 };
 
 export default function App() {
-  const [character, setCharacter] = useState<FantasyCharacter | null>(null);
-  const [history, setHistory] = useState<FantasyCharacter[]>([]);
-  const [deck, setDeck] = useState<FantasyCharacter[]>(() => {
-    try {
-      const saved = localStorage.getItem(DECK_STORAGE_KEY);
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
   const [guildProfile, setGuildProfile] = useState<GuildProfile>(() => {
     try {
       const saved = localStorage.getItem(GUILD_STORAGE_KEY);
       return saved ? JSON.parse(saved) : DEFAULT_GUILD_PROFILE;
     } catch {
       return DEFAULT_GUILD_PROFILE;
+    }
+  });
+
+  const [character, setCharacter] = useState<FantasyCharacter | null>(() => {
+    const initialChar = generateRandomCharacter();
+    initialChar.portrait = generateCharacterPortrait(initialChar.className);
+    initialChar.forgedBy = `${DEFAULT_GUILD_PROFILE.username} • ${DEFAULT_GUILD_PROFILE.title}`;
+    initialChar.guildCrest = DEFAULT_GUILD_PROFILE.crest;
+    return initialChar;
+  });
+
+  const [history, setHistory] = useState<FantasyCharacter[]>(() => (character ? [character] : []));
+  const [deck, setDeck] = useState<FantasyCharacter[]>(() => {
+    try {
+      const saved = localStorage.getItem(DECK_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
     }
   });
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -336,16 +344,9 @@ export default function App() {
     showToast(`Guild seal inscribed for ${updated.username}!`);
   }, [showToast]);
 
-  // Initial character generation on mount
+  // Initialize summon counter on mount
   useEffect(() => {
-    const initialChar = generateRandomCharacter();
-    initialChar.portrait = generateCharacterPortrait(initialChar.className);
-    initialChar.forgedBy = `${guildProfile.username} • ${guildProfile.title}`;
-    initialChar.guildCrest = guildProfile.crest;
-    // Backstory starts empty until user clicks 'Generate Backstory'
-    setCharacter(initialChar);
-    setHistory([initialChar]);
-    setTotalSummons(1);
+    setTotalSummons((prev) => (prev === 0 ? 1 : prev));
   }, []);
 
   const isCurrentSaved = character ? deck.some((c) => c.id === character.id) : false;
@@ -684,6 +685,7 @@ export default function App() {
         onClose={() => setIsExporterOpen(false)}
         character={character}
         guildProfile={guildProfile}
+        showToast={showToast}
       />
 
       {/* Character Inscriber & Customizer Modal */}

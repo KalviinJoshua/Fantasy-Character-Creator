@@ -16,9 +16,9 @@ import { downloadCharacterCardPng, exportCharacterToMarkdown } from '../utils/ca
 interface CardExporterModalProps {
   isOpen: boolean;
   onClose: () => void;
-  character: FantasyCharacter;
+  character: FantasyCharacter | null;
   guildProfile?: GuildProfile;
-  showToast: (msg: string) => void;
+  showToast?: (msg: string) => void;
 }
 
 export const CardExporterModal: React.FC<CardExporterModalProps> = ({
@@ -34,7 +34,7 @@ export const CardExporterModal: React.FC<CardExporterModalProps> = ({
 
   const handleDownloadPng = () => {
     downloadCharacterCardPng(character, guildProfile);
-    showToast(`Downloading ${character.name} Trading Card PNG!`);
+    showToast?.(`Downloading ${character.name} Trading Card PNG!`);
   };
 
   const handleCopyMarkdown = async () => {
@@ -42,10 +42,10 @@ export const CardExporterModal: React.FC<CardExporterModalProps> = ({
     try {
       await navigator.clipboard.writeText(md);
       setCopiedType('md');
-      showToast('Markdown Stat Block copied to clipboard!');
+      showToast?.('Markdown Stat Block copied to clipboard!');
       setTimeout(() => setCopiedType(null), 2500);
     } catch {
-      showToast('Could not access clipboard');
+      showToast?.('Could not access clipboard');
     }
   };
 
@@ -54,10 +54,10 @@ export const CardExporterModal: React.FC<CardExporterModalProps> = ({
     try {
       await navigator.clipboard.writeText(jsonStr);
       setCopiedType('json');
-      showToast('Character JSON copied to clipboard!');
+      showToast?.('Character JSON copied to clipboard!');
       setTimeout(() => setCopiedType(null), 2500);
     } catch {
-      showToast('Could not access clipboard');
+      showToast?.('Could not access clipboard');
     }
   };
 
