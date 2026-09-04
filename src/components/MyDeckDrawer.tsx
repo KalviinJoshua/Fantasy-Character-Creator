@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { FantasyCharacter } from '../types';
 import { CharacterIcon } from './CharacterIcon';
+import { GuildCrestIcon } from './GuildCrestIcon';
 import { 
   X, 
   Trash2, 
@@ -192,6 +193,14 @@ export const MyDeckDrawer: React.FC<MyDeckDrawerProps> = ({
                           <p className="line-clamp-2 leading-relaxed">
                             {item.backstory}
                           </p>
+                        </div>
+                      )}
+
+                      {/* Guild Master Inscription Seal */}
+                      {item.forgedBy && (
+                        <div className="mb-2.5 text-[9px] text-[#8e877a] flex items-center gap-1.5 truncate px-1">
+                          <GuildCrestIcon crest={item.guildCrest || 'phoenix'} className="w-2.5 h-2.5 shrink-0" />
+                          <span className="truncate">Seal: {item.forgedBy}</span>
                         </div>
                       )}
 

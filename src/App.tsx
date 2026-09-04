@@ -1,8 +1,23 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Dices, Sparkles, Volume2, VolumeX, Layers, BookmarkCheck, History, BookOpen, Trash2 } from 'lucide-react';
-import { FantasyCharacter } from './types';
-import { generateRandomCharacter } from './data/characterData';
+import { 
+  Dices, 
+  Sparkles, 
+  Volume2, 
+  VolumeX, 
+  Layers, 
+  BookmarkCheck, 
+  History, 
+  BookOpen, 
+  Trash2, 
+  ShieldCheck, 
+  User,
+  Swords,
+  Download,
+  Edit3
+} from 'lucide-react';
+import { FantasyCharacter, GuildProfile, CharacterRaceType } from './types';
+import { generateRandomCharacter, updateCharacterRace, generateQuestHook } from './data/characterData';
 import { CharacterCard } from './components/CharacterCard';
 import { CharacterIcon } from './components/CharacterIcon';
 import { generateCharacterPortrait } from './utils/portraitGenerator';
@@ -10,8 +25,23 @@ import { generateCharacterBackstory } from './utils/backstoryGenerator';
 import { AlchemistWorkbenchBg } from './components/AlchemistWorkbenchBg';
 import { MagicalParticles } from './components/MagicalParticles';
 import { MyDeckDrawer } from './components/MyDeckDrawer';
+import { GuildProfileModal } from './components/GuildProfileModal';
+import { GuildCrestIcon } from './components/GuildCrestIcon';
+import { ArenaDuelModal } from './components/ArenaDuelModal';
+import { CardExporterModal } from './components/CardExporterModal';
+import { CharacterEditModal } from './components/CharacterEditModal';
 
 const DECK_STORAGE_KEY = 'fantasy_character_deck_v1';
+const GUILD_STORAGE_KEY = 'fantasy_guild_profile_v1';
+
+const DEFAULT_GUILD_PROFILE: GuildProfile = {
+  username: 'Master Vance',
+  title: 'Grand Inscriber',
+  crest: 'phoenix',
+  level: 1,
+  totalForged: 0,
+  joinedAt: Date.now(),
+};
 
 export default function App() {
   const [character, setCharacter] = useState<FantasyCharacter | null>(null);
@@ -24,10 +54,23 @@ export default function App() {
       return [];
     }
   });
+  const [guildProfile, setGuildProfile] = useState<GuildProfile>(() => {
+    try {
+      const saved = localStorage.getItem(GUILD_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : DEFAULT_GUILD_PROFILE;
+    } catch {
+      return DEFAULT_GUILD_PROFILE;
+    }
+  });
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isDeckOpen, setIsDeckOpen] = useState(false);
+  const [isArenaOpen, setIsArenaOpen] = useState(false);
+  const [isExporterOpen, setIsExporterOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const [isRolling, setIsRolling] = useState(false);
   const [isGeneratingPortrait, setIsGeneratingPortrait] = useState(false);
   const [isGeneratingBackstory, setIsGeneratingBackstory] = useState(false);
+  const [isGeneratingQuestHook, setIsGeneratingQuestHook] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [totalSummons, setTotalSummons] = useState(0);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -163,13 +206,15 @@ export default function App() {
     setTimeout(() => {
       const newCharacter = generateRandomCharacter();
       newCharacter.portrait = generateCharacterPortrait(newCharacter.className);
+      newCharacter.forgedBy = `${guildProfile.username} • ${guildProfile.title}`;
+      newCharacter.guildCrest = guildProfile.crest;
       // Leave backstory empty until user clicks "Generate Backstory"
       setCharacter(newCharacter);
       setHistory((prev) => [newCharacter, ...prev.slice(0, 4)]);
       setTotalSummons((count) => count + 1);
       setIsRolling(false);
     }, 150);
-  }, [playRollSound]);
+  }, [playRollSound, guildProfile]);
 
   // Handler for "Generate Portrait"
   const handleGeneratePortrait = useCallback(() => {
@@ -220,6 +265,41 @@ export default function App() {
     }, 250);
   }, [character, isGeneratingBackstory, playBackstorySound, showToast]);
 
+  // Handler for Race Modification
+  const handleChangeRace = useCallback((newRace: CharacterRaceType) => {
+    if (!character) return;
+    const updated = updateCharacterRace(character, newRace);
+    setCharacter(updated);
+    setHistory((prev) => prev.map((c) => (c.id === character.id ? updated : c)));
+    setDeck((prev) => prev.map((c) => (c.id === character.id ? updated : c)));
+    showToast(`Ancestry transmuted to ${newRace}!`);
+  }, [character, showToast]);
+
+  // Handler for "Generate Quest Hook"
+  const handleGenerateQuestHook = useCallback(() => {
+    if (!character || isGeneratingQuestHook) return;
+    setIsGeneratingQuestHook(true);
+    playBackstorySound();
+
+    setTimeout(() => {
+      const questHook = generateQuestHook(character);
+      const updated = { ...character, questHook };
+      setCharacter(updated);
+      setHistory((prev) => prev.map((c) => (c.id === character.id ? updated : c)));
+      setDeck((prev) => prev.map((c) => (c.id === character.id ? updated : c)));
+      setIsGeneratingQuestHook(false);
+      showToast(`Quest hook inscribed: "${questHook.title}"!`);
+    }, 250);
+  }, [character, isGeneratingQuestHook, playBackstorySound, showToast]);
+
+  // Handler for saving customized character
+  const handleSaveEditedCharacter = useCallback((updated: FantasyCharacter) => {
+    setCharacter(updated);
+    setHistory((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+    setDeck((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+    showToast(`Character parchment rewritten for ${updated.name}!`);
+  }, [showToast]);
+
   // Handler for "Save to Deck"
   const handleSaveToDeck = useCallback((charToSave: FantasyCharacter) => {
     setDeck((prev) => {
@@ -245,10 +325,23 @@ export default function App() {
     }
   }, [showToast]);
 
+  // Guild Master Profile save handler
+  const handleSaveProfile = useCallback((updated: GuildProfile) => {
+    setGuildProfile(updated);
+    try {
+      localStorage.setItem(GUILD_STORAGE_KEY, JSON.stringify(updated));
+    } catch {
+      // Storage fallback
+    }
+    showToast(`Guild seal inscribed for ${updated.username}!`);
+  }, [showToast]);
+
   // Initial character generation on mount
   useEffect(() => {
     const initialChar = generateRandomCharacter();
     initialChar.portrait = generateCharacterPortrait(initialChar.className);
+    initialChar.forgedBy = `${guildProfile.username} • ${guildProfile.title}`;
+    initialChar.guildCrest = guildProfile.crest;
     // Backstory starts empty until user clicks 'Generate Backstory'
     setCharacter(initialChar);
     setHistory([initialChar]);
@@ -280,8 +373,30 @@ export default function App() {
               </p>
             </div>
 
-            {/* Top Right Controls: "My Deck" Button & Sound Toggle */}
-            <div className="flex items-center gap-2.5">
+            {/* Top Right Controls: Profile, "My Deck" Button & Sound Toggle */}
+            <div className="flex items-center gap-2 sm:gap-2.5">
+              {/* Guild Master Profile Button */}
+              <button
+                id="btn-open-guild-profile"
+                type="button"
+                onClick={() => setIsProfileOpen(true)}
+                className="inline-flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-sm border border-[#c9a050]/40 bg-[#1e1b17] hover:bg-[#28221b] hover:border-[#eab308] text-[#c9a050] text-xs font-bold transition-all shadow-xs cursor-pointer group"
+                title="Guild Master Inscriber Profile & Registry"
+              >
+                <div className="p-0.5 rounded-xs bg-[#100e0c] border border-[#c9a050]/30 text-[#eab308]">
+                  <GuildCrestIcon crest={guildProfile.crest} className="w-3.5 h-3.5" />
+                </div>
+                <div className="text-left hidden sm:block">
+                  <div className="text-[11px] font-bold font-fantasy-name text-[#f5efe6] group-hover:text-[#eab308] transition-colors leading-none truncate max-w-[110px]">
+                    {guildProfile.username}
+                  </div>
+                  <div className="text-[8px] text-[#9c9486] uppercase tracking-wider leading-none mt-0.5">
+                    {guildProfile.title}
+                  </div>
+                </div>
+                <span className="sm:hidden text-xs">Profile</span>
+              </button>
+
               <button
                 id="btn-open-deck"
                 type="button"
@@ -338,6 +453,13 @@ export default function App() {
             isGeneratingBackstory={isGeneratingBackstory}
             onSaveToDeck={handleSaveToDeck}
             isSavedInDeck={isCurrentSaved}
+            guildProfile={guildProfile}
+            onChangeRace={handleChangeRace}
+            onGenerateQuestHook={handleGenerateQuestHook}
+            isGeneratingQuestHook={isGeneratingQuestHook}
+            onOpenExporter={() => setIsExporterOpen(true)}
+            onOpenArena={() => setIsArenaOpen(true)}
+            onOpenEdit={() => setIsEditOpen(true)}
           />
         </section>
 
@@ -427,6 +549,12 @@ export default function App() {
                         <span>•</span>
                         <span className="text-amber-400 font-mono">{hero.stats.strength} STR</span>
                       </div>
+                      {hero.forgedBy && (
+                        <div className="text-[9px] text-[#8e877a] flex items-center gap-1 mt-0.5 truncate">
+                          <GuildCrestIcon crest={hero.guildCrest || 'phoenix'} className="w-2.5 h-2.5 shrink-0" />
+                          <span className="truncate">Seal: {hero.forgedBy}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -520,6 +648,16 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      {/* Guild Master Profile & Registry Modal */}
+      <GuildProfileModal
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        profile={guildProfile}
+        onSaveProfile={handleSaveProfile}
+        totalSummons={totalSummons}
+        deckCount={deck.length}
+      />
+
       {/* Slide-out "My Deck" Drawer */}
       <MyDeckDrawer
         isOpen={isDeckOpen}
@@ -529,6 +667,31 @@ export default function App() {
         onSelectCharacter={(chosen) => setCharacter(chosen)}
         onRemoveFromDeck={handleRemoveFromDeck}
         onClearDeck={handleClearDeck}
+      />
+
+      {/* Turn-Based Arena Boss Duel Modal */}
+      <ArenaDuelModal
+        isOpen={isArenaOpen}
+        onClose={() => setIsArenaOpen(false)}
+        character={character}
+        soundEnabled={soundEnabled}
+        onVictory={(boss) => showToast(`Victory achieved over ${boss}!`)}
+      />
+
+      {/* Trading Card PNG & D&D Stat Block Exporter Modal */}
+      <CardExporterModal
+        isOpen={isExporterOpen}
+        onClose={() => setIsExporterOpen(false)}
+        character={character}
+        guildProfile={guildProfile}
+      />
+
+      {/* Character Inscriber & Customizer Modal */}
+      <CharacterEditModal
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+        character={character}
+        onSave={handleSaveEditedCharacter}
       />
 
       {/* Footer subtext */}
