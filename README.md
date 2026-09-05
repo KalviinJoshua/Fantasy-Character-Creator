@@ -5,9 +5,9 @@ An interactive, high-fantasy hero forge and trading card studio built with React
 ---
 ## 🚀 Live Demo
 
-🔗 **[Fantasy Character Generator & Alchemist's Grimoire](https://fantasy-character-creator-rho.vercel.app/)**
+🔗 https://fantasy-character-creator-rho.vercel.app/
 
-## 🌟 Comprehensive Feature Highlights
+---
 
 ## 🌟 Comprehensive Feature Highlights
 
