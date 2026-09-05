@@ -1,4 +1,4 @@
-# ⚔️ Fantasy Character Generator & Alchemist's Grimoire
+# ⚔️ Fantasy Character Generator
 
 An interactive, high-fantasy hero forge and trading card studio built with React 18, TypeScript, Tailwind CSS, and `motion/react`. Step into an **Ancient Alchemist's Workbench** to transmute legendary adventurers, roll 6-attribute combat stat blocks, inscribe origin lore, export collectible cards, and battle dungeon bosses in a turn-based arena.
 
